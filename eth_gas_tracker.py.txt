@@ -1,0 +1,80 @@
+
+
+"""
+Simple Ethereum Gas Tracker
+
+This script pulls Ethereum gas price data from the Etherscan API
+and prints Safe / Propose / Fast gas prices in Gwei.
+
+Optional:
+- runs continuously
+- alerts when gas drops below a chosen level
+"""
+
+import requests
+import time
+import os
+
+API_KEY = os.getenv("ETHERSCAN_API_KEY")
+
+URL = "https://api.etherscan.io/api"
+
+INTERVAL = 30  # seconds between updates
+ALERT_THRESHOLD = 10  # change if desired
+
+
+def get_gas_prices():
+    params = {
+        "module": "gastracker",
+        "action": "gasoracle",
+        "apikey": API_KEY
+    }
+
+    response = requests.get(URL, params=params)
+
+    if response.status_code != 200:
+        print("Error fetching gas data")
+        return None
+
+    data = response.json()
+
+    if data["status"] != "1":
+        print("API returned error:", data["message"])
+        return None
+
+    return data["result"]
+
+
+def display_gas(gas_data):
+    safe = gas_data["SafeGasPrice"]
+    propose = gas_data["ProposeGasPrice"]
+    fast = gas_data["FastGasPrice"]
+
+    print("\nEthereum Gas Prices")
+    print("-------------------")
+    print("Safe:", safe, "Gwei")
+    print("Propose:", propose, "Gwei")
+    print("Fast:", fast, "Gwei")
+
+    if float(fast) < ALERT_THRESHOLD:
+        print("Alert: Gas price below threshold!")
+
+
+def main():
+    if not API_KEY:
+        print("Set your ETHERSCAN_API_KEY first")
+        return
+
+    print("Starting Ethereum Gas Tracker...")
+
+    while True:
+        gas_data = get_gas_prices()
+
+        if gas_data:
+            display_gas(gas_data)
+
+        time.sleep(INTERVAL)
+
+
+if __name__ == "__main__":
+    main()
